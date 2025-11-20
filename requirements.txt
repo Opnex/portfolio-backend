@@ -1,13 +1,3 @@
-# fastapi
-# uvicorn
-# sqlalchemy
-# pymysql
-# python-dotenv
-# pydantic
-# email-validator
-# jinja2
-
-
 fastapi
 uvicorn
 sqlalchemy
@@ -18,24 +8,3 @@ email-validator
 jinja2
 passlib[bcrypt]
 python-jose[cryptography]
-
-
-
-
-
-
-
-
-
-
-
-# fastapi
-# uvicorn[standard]
-# sqlalchemy
-# pymysql
-# python-dotenv
-# pydantic
-# email-validator
-# jinja2
-# starlette
-# python-multipart
