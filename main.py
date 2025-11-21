@@ -216,7 +216,7 @@ app = FastAPI()
 # =========================
 origins = [
     "http://localhost:5173",  # dev frontend
-    "https://opnex-portfolio.up.railway.app",  # deployed frontend
+    "https://opnex-portfolio.up.railway.app", # deployed frontend
 ]
 
 app.add_middleware(
