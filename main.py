@@ -198,7 +198,6 @@
 
 
 
-# main.py
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -212,23 +211,24 @@ from email.mime.text import MIMEText
 
 app = FastAPI()
 
-@app.get("/")
-def root():
-    return {"message": "Welcome to Opnex Portfolio API"}
+# === CORS ===
+origins = [
+    "http://localhost:5173",  # dev frontend
+    "https://your-frontend-domain.com"  # production frontend
+]
 
-# Create all DB tables on startup
-Base.metadata.create_all(bind=engine)
-
-# CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dependency to get DB session
+# Create all DB tables
+Base.metadata.create_all(bind=engine)
+
+# DB session dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -248,7 +248,7 @@ def send_email(subject, body):
         server.login(SMTP_EMAIL, SMTP_PASSWORD)
         server.sendmail(SMTP_EMAIL, SMTP_EMAIL, msg.as_string())
 
-# CONTACT ENDPOINT
+# --- CONTACT ---
 @app.post("/contact")
 def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
     new_msg = Message(
@@ -271,45 +271,27 @@ def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
 
     return {"success": True, "message": "Message delivered successfully!"}
 
-# SIMPLE ADMIN LOGIN TEST
+# --- ADMIN LOGIN ---
 @app.post("/admin/login")
 def admin_login(credentials: dict):
-    correct_username = "opnex"
-    correct_password = "opnex123"
-
-    if (
-        credentials.get("username") == correct_username
-        and credentials.get("password") == correct_password
-    ):
+    if credentials.get("username") == "opnex" and credentials.get("password") == "opnex123":
         return {"success": True, "message": "Login successful"}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    raise HTTPException(status_code=401, detail="Invalid credentials")
 
-# PUBLIC PROJECTS ENDPOINT
+# --- PROJECTS ---
 @app.get("/projects")
 def get_projects(db: Session = Depends(get_db)):
-    projects = db.query(Project).all()
-    return projects
+    return db.query(Project).all()
 
-# ADMIN: CREATE PROJECT
 @app.post("/admin/projects")
-def create_project(
-    project: ProjectCreate,
-    db: Session = Depends(get_db),
-    username: str = Depends(authenticate_admin)
-):
+def create_project(project: ProjectCreate, db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
     db_project = Project(**project.dict())
     db.add(db_project)
     db.commit()
     return {"message": "Project created"}
 
-# ADMIN: DELETE PROJECT
 @app.delete("/admin/projects/{project_id}")
-def delete_project(
-    project_id: int,
-    db: Session = Depends(get_db),
-    username: str = Depends(authenticate_admin)
-):
+def delete_project(project_id: int, db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
     db_project = db.query(Project).filter(Project.id == project_id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -317,22 +299,13 @@ def delete_project(
     db.commit()
     return {"message": "Project deleted"}
 
-# ADMIN: GET MESSAGES
+# --- MESSAGES ---
 @app.get("/admin/messages")
-def get_messages(
-    db: Session = Depends(get_db),
-    username: str = Depends(authenticate_admin)
-):
-    messages = db.query(Message).order_by(Message.created_at.desc()).all()
-    return messages
+def get_messages(db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
+    return db.query(Message).order_by(Message.created_at.desc()).all()
 
-# ADMIN: DELETE MESSAGE
 @app.delete("/admin/messages/{message_id}")
-def delete_message(
-    message_id: int,
-    db: Session = Depends(get_db),
-    username: str = Depends(authenticate_admin)
-):
+def delete_message(message_id: int, db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
     db_message = db.query(Message).filter(Message.id == message_id).first()
     if not db_message:
         raise HTTPException(status_code=404, detail="Message not found")
