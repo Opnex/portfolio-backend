@@ -211,10 +211,12 @@ from email.mime.text import MIMEText
 
 app = FastAPI()
 
-# === CORS ===
+# =========================
+#        CORS SETTINGS
+# =========================
 origins = [
     "http://localhost:5173",  # dev frontend
-    "https://your-frontend-domain.com"  # production frontend
+    "https://opnex-portfolio.up.railway.app",  # deployed frontend
 ]
 
 app.add_middleware(
@@ -225,10 +227,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create all DB tables
+# Create tables
 Base.metadata.create_all(bind=engine)
 
-# DB session dependency
+# =========================
+#   DATABASE DEPENDENCY
+# =========================
 def get_db():
     db = SessionLocal()
     try:
@@ -236,7 +240,9 @@ def get_db():
     finally:
         db.close()
 
-# Email sender
+# =========================
+#      EMAIL SENDER
+# =========================
 def send_email(subject, body):
     msg = MIMEText(body)
     msg["Subject"] = subject
@@ -248,14 +254,23 @@ def send_email(subject, body):
         server.login(SMTP_EMAIL, SMTP_PASSWORD)
         server.sendmail(SMTP_EMAIL, SMTP_EMAIL, msg.as_string())
 
-# --- CONTACT ---
+# =========================
+#       ROOT ROUTE
+# =========================
+@app.get("/")
+def root():
+    return {"message": "Welcome to Opnex Portfolio API"}
+
+# =========================
+#     CONTACT FORM
+# =========================
 @app.post("/contact")
 def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
     new_msg = Message(
         name=data.name,
         email=data.email,
         phone=data.phone,
-        message=data.message
+        message=data.message,
     )
     db.add(new_msg)
     db.commit()
@@ -269,46 +284,79 @@ def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
     """
     send_email("New Portfolio Message", email_body)
 
-    return {"success": True, "message": "Message delivered successfully!"}
+    return {"success": True, "message": "Message delivered successfully"}
 
-# --- ADMIN LOGIN ---
+# =========================
+#     ADMIN LOGIN
+# =========================
 @app.post("/admin/login")
 def admin_login(credentials: dict):
     if credentials.get("username") == "opnex" and credentials.get("password") == "opnex123":
         return {"success": True, "message": "Login successful"}
+
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
-# --- PROJECTS ---
+# =========================
+#      PUBLIC PROJECTS
+# =========================
 @app.get("/projects")
 def get_projects(db: Session = Depends(get_db)):
     return db.query(Project).all()
 
+# =========================
+#   ADMIN: CREATE PROJECT
+# =========================
 @app.post("/admin/projects")
-def create_project(project: ProjectCreate, db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
+def create_project(
+    project: ProjectCreate,
+    db: Session = Depends(get_db),
+    username: str = Depends(authenticate_admin)
+):
     db_project = Project(**project.dict())
     db.add(db_project)
     db.commit()
     return {"message": "Project created"}
 
+# =========================
+#   ADMIN: DELETE PROJECT
+# =========================
 @app.delete("/admin/projects/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
+def delete_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    username: str = Depends(authenticate_admin)
+):
     db_project = db.query(Project).filter(Project.id == project_id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
+
     db.delete(db_project)
     db.commit()
     return {"message": "Project deleted"}
 
-# --- MESSAGES ---
+# =========================
+#   ADMIN: VIEW MESSAGES
+# =========================
 @app.get("/admin/messages")
-def get_messages(db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
+def get_messages(
+    db: Session = Depends(get_db),
+    username: str = Depends(authenticate_admin)
+):
     return db.query(Message).order_by(Message.created_at.desc()).all()
 
+# =========================
+#   ADMIN: DELETE MESSAGE
+# =========================
 @app.delete("/admin/messages/{message_id}")
-def delete_message(message_id: int, db: Session = Depends(get_db), username: str = Depends(authenticate_admin)):
+def delete_message(
+    message_id: int,
+    db: Session = Depends(get_db),
+    username: str = Depends(authenticate_admin)
+):
     db_message = db.query(Message).filter(Message.id == message_id).first()
     if not db_message:
         raise HTTPException(status_code=404, detail="Message not found")
+
     db.delete(db_message)
     db.commit()
     return {"message": "Message deleted"}
