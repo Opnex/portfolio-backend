@@ -44,22 +44,18 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from config import DATABASE_URL, DB_USER, DB_PASSWORD, DB_HOST, DB_NAME, DB_PORT
+from config import DATABASE_URL
 
-# Use DATABASE_URL if set (Railway), otherwise fallback to local config
-if DATABASE_URL:
-    engine = create_engine(DATABASE_URL, future=True)
-else:
-    engine = create_engine(
-        f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
-        future=True
-    )
+# Engine using DATABASE_URL (Railway provides it, local .env works too)
+engine = create_engine(DATABASE_URL, future=True)
 
+# Session
 SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
     autoflush=False
 )
 
+# Base class for models
 Base = declarative_base()
 
