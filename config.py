@@ -17,14 +17,34 @@
 
                     # POSTGRES CODE
 
-# config.py
-DB_NAME = "first_portfolio_db"
-DB_USER = "postgres"           # local default - change if you create another user
-DB_PASSWORD = "Thomasope"
-DB_HOST = "127.0.0.1"
-DB_PORT = 5432
+# # config.py
+# DB_NAME = "first_portfolio_db"
+# DB_USER = "postgres"           # local default - change if you create another user
+# DB_PASSWORD = "Thomasope"
+# DB_HOST = "127.0.0.1"
+# DB_PORT = 5432
 
-# Your email settings
+# # Your email settings
+# SMTP_EMAIL = "thomasopeyemi1@gmail.com"
+# SMTP_PASSWORD = "jnlwgpnipymvanif"
+# SMTP_SERVER = "smtp.gmail.com"
+# SMTP_PORT = 587
+
+# ADMIN_USERNAME = "opnex"
+# ADMIN_PASSWORD = "opnex123"
+
+
+
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # loads .env locally
+
+# DATABASE_URL will be provided by Railway in production
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Email & Admin settings
 SMTP_EMAIL = "thomasopeyemi1@gmail.com"
 SMTP_PASSWORD = "jnlwgpnipymvanif"
 SMTP_SERVER = "smtp.gmail.com"
@@ -32,6 +52,7 @@ SMTP_PORT = 587
 
 ADMIN_USERNAME = "opnex"
 ADMIN_PASSWORD = "opnex123"
+
 
 
 
