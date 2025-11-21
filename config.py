@@ -42,7 +42,7 @@ from dotenv import load_dotenv
 load_dotenv()  # loads .env locally
 
 # DATABASE_URL will be provided by Railway in production
-DATABASE_URL = os.getenv("DATABASE_URL")
+# DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Email & Admin settings
 SMTP_EMAIL = "thomasopeyemi1@gmail.com"
