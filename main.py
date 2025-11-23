@@ -200,12 +200,11 @@
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import Message, Project
 from schemas import MessageCreate, ProjectCreate
-from config import SMTP_EMAIL, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT, ADMIN_USERNAME, ADMIN_PASSWORD
+from config import SMTP_EMAIL, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT
 from auth import authenticate_admin
 import smtplib
 from email.mime.text import MIMEText
@@ -216,8 +215,8 @@ app = FastAPI()
 #        CORS SETTINGS
 # =========================
 origins = [
-    "http://localhost:5173",                 # local dev
-    "https://opnex-portfolio.vercel.app",    # your frontend after deployment
+    "http://localhost:5173",  # dev frontend
+    "https://opnex-portfolio.up.railway.app"  # deployed frontend
 ]
 
 app.add_middleware(
@@ -248,7 +247,6 @@ def send_email(subject, body):
     msg["Subject"] = subject
     msg["From"] = SMTP_EMAIL
     msg["To"] = SMTP_EMAIL
-
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
         server.starttls()
         server.login(SMTP_EMAIL, SMTP_PASSWORD)
@@ -272,19 +270,17 @@ def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
         phone=data.phone,
         message=data.message,
     )
-
     db.add(new_msg)
     db.commit()
 
     email_body = f"""
-    New Portfolio Contact Message:
-    Name: {data.name}
-    Email: {data.email}
-    Phone: {data.phone}
-    Message: {data.message}
-    """
+New Portfolio Contact Message:
+Name: {data.name}
+Email: {data.email}
+Phone: {data.phone}
+Message: {data.message}
+"""
     send_email("New Portfolio Message", email_body)
-
     return {"success": True, "message": "Message delivered successfully"}
 
 # =========================
@@ -292,9 +288,8 @@ def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
 # =========================
 @app.post("/admin/login")
 def admin_login(credentials: dict):
-    if credentials.get("username") == ADMIN_USERNAME and credentials.get("password") == ADMIN_PASSWORD:
+    if credentials.get("username") == "opnex" and credentials.get("password") == "opnex123":
         return {"success": True, "message": "Login successful"}
-
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 # =========================
@@ -330,10 +325,8 @@ def delete_project(
     db_project = db.query(Project).filter(Project.id == project_id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
-
     db.delete(db_project)
     db.commit()
-
     return {"message": "Project deleted"}
 
 # =========================
@@ -358,8 +351,6 @@ def delete_message(
     db_message = db.query(Message).filter(Message.id == message_id).first()
     if not db_message:
         raise HTTPException(status_code=404, detail="Message not found")
-
     db.delete(db_message)
     db.commit()
-
     return {"message": "Message deleted"}
