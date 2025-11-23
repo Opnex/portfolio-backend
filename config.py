@@ -37,14 +37,19 @@
 
 # config.py
 
-DB_NAME = "first_portfolio_db"
-DB_USER = "postgres"
-DB_PASSWORD = "Thomasope"
-DB_HOST = "127.0.0.1"
-DB_PORT = 5432
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DB_NAME = os.getenv("PGDATABASE")
+DB_USER = os.getenv("PGUSER")
+DB_PASSWORD = os.getenv("PGPASSWORD")
+DB_HOST = os.getenv("PGHOST")
+DB_PORT = os.getenv("PGPORT")
 
 SMTP_EMAIL = "thomasopeyemi1@gmail.com"
-SMTP_PASSWORD = "jnlwgpnipymvanif"
+SMTP_PASSWORD = "jnlwgpnipymvanif"   # your Gmail app password
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 

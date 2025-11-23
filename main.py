@@ -198,14 +198,14 @@
 
 
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import Message, Project
 from schemas import MessageCreate, ProjectCreate
-from config import SMTP_EMAIL, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT
+from config import SMTP_EMAIL, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT, ADMIN_USERNAME, ADMIN_PASSWORD
 from auth import authenticate_admin
 import smtplib
 from email.mime.text import MIMEText
@@ -216,8 +216,8 @@ app = FastAPI()
 #        CORS SETTINGS
 # =========================
 origins = [
-    "http://localhost:5173",  # dev frontend
-    "https://opnex-portfolio.up.railway.app"  # deployed frontend
+    "http://localhost:5173",                 # local dev
+    "https://opnex-portfolio.vercel.app",    # your frontend after deployment
 ]
 
 app.add_middleware(
@@ -248,6 +248,7 @@ def send_email(subject, body):
     msg["Subject"] = subject
     msg["From"] = SMTP_EMAIL
     msg["To"] = SMTP_EMAIL
+
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
         server.starttls()
         server.login(SMTP_EMAIL, SMTP_PASSWORD)
@@ -263,17 +264,6 @@ def root():
 # =========================
 #       CONTACT FORM
 # =========================
-@app.options("/contact")
-async def contact_options(request: Request):
-    """Handle preflight requests for CORS"""
-    return JSONResponse(
-        headers={
-            "Access-Control-Allow-Origin": ",".join(origins),
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
-    )
-
 @app.post("/contact")
 def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
     new_msg = Message(
@@ -282,6 +272,7 @@ def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
         phone=data.phone,
         message=data.message,
     )
+
     db.add(new_msg)
     db.commit()
 
@@ -293,26 +284,17 @@ def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
     Message: {data.message}
     """
     send_email("New Portfolio Message", email_body)
+
     return {"success": True, "message": "Message delivered successfully"}
 
 # =========================
 #       ADMIN LOGIN
 # =========================
-@app.options("/admin/login")
-async def admin_login_options(request: Request):
-    """Handle preflight for admin login"""
-    return JSONResponse(
-        headers={
-            "Access-Control-Allow-Origin": ",".join(origins),
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
-    )
-
 @app.post("/admin/login")
 def admin_login(credentials: dict):
-    if credentials.get("username") == "opnex" and credentials.get("password") == "opnex123":
+    if credentials.get("username") == ADMIN_USERNAME and credentials.get("password") == ADMIN_PASSWORD:
         return {"success": True, "message": "Login successful"}
+
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 # =========================
@@ -348,8 +330,10 @@ def delete_project(
     db_project = db.query(Project).filter(Project.id == project_id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
+
     db.delete(db_project)
     db.commit()
+
     return {"message": "Project deleted"}
 
 # =========================
@@ -374,6 +358,8 @@ def delete_message(
     db_message = db.query(Message).filter(Message.id == message_id).first()
     if not db_message:
         raise HTTPException(status_code=404, detail="Message not found")
+
     db.delete(db_message)
     db.commit()
+
     return {"message": "Message deleted"}
