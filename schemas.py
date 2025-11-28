@@ -12,3 +12,4 @@ class ProjectCreate(BaseModel):
     description: str
     image_url: str
     live_url: str
+    
