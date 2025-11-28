@@ -212,18 +212,21 @@ from email.mime.text import MIMEText
 app = FastAPI()
 
 # =========================
-#        CORS SETTINGS
+#    IMPROVED CORS SETTINGS
 # =========================
 origins = [
-    "http://localhost:5173",  # dev frontend
-    "https://opnex-portfolio.up.railway.app"  # deployed frontend
+    "http://localhost:5173",
+    "http://localhost:5174", 
+    "http://localhost:3000",
+    "https://opnex-portfolio.up.railway.app",
+    "https://your-frontend-domain.com"  # Add your actual frontend domain here
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -243,14 +246,19 @@ def get_db():
 #      EMAIL SENDER
 # =========================
 def send_email(subject, body):
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = SMTP_EMAIL
-    msg["To"] = SMTP_EMAIL
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_EMAIL, SMTP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, SMTP_EMAIL, msg.as_string())
+    try:
+        msg = MIMEText(body)
+        msg["Subject"] = subject
+        msg["From"] = SMTP_EMAIL
+        msg["To"] = SMTP_EMAIL
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.sendmail(SMTP_EMAIL, SMTP_EMAIL, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
 
 # =========================
 #       ROOT ROUTE
@@ -263,25 +271,34 @@ def root():
 #       CONTACT FORM
 # =========================
 @app.post("/contact")
-def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
-    new_msg = Message(
-        name=data.name,
-        email=data.email,
-        phone=data.phone,
-        message=data.message,
-    )
-    db.add(new_msg)
-    db.commit()
+async def receive_message(data: MessageCreate, db: Session = Depends(get_db)):
+    try:
+        new_msg = Message(
+            name=data.name,
+            email=data.email,
+            phone=data.phone,
+            message=data.message,
+        )
+        db.add(new_msg)
+        db.commit()
 
-    email_body = f"""
+        email_body = f"""
 New Portfolio Contact Message:
 Name: {data.name}
 Email: {data.email}
 Phone: {data.phone}
 Message: {data.message}
 """
-    send_email("New Portfolio Message", email_body)
-    return {"success": True, "message": "Message delivered successfully"}
+        email_sent = send_email("New Portfolio Message", email_body)
+        
+        return {
+            "success": True, 
+            "message": "Message delivered successfully",
+            "email_sent": email_sent
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 # =========================
 #       ADMIN LOGIN
