@@ -211,6 +211,26 @@ from email.mime.text import MIMEText
 
 app = FastAPI()
 
+# # =========================
+# #    IMPROVED CORS SETTINGS
+# # =========================
+# origins = [
+#     "http://localhost:5173",
+#     "http://localhost:5174", 
+#     "http://localhost:3000",
+#     "https://opnex-portfolio.up.railway.app",
+#     "https://your-frontend-domain.com"  # Add your actual frontend domain here
+# ]
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+#     allow_headers=["*"],
+# )
+
+
 # =========================
 #    IMPROVED CORS SETTINGS
 # =========================
@@ -219,16 +239,25 @@ origins = [
     "http://localhost:5174", 
     "http://localhost:3000",
     "https://opnex-portfolio.up.railway.app",
-    "https://your-frontend-domain.com"  # Add your actual frontend domain here
+    "http://127.0.0.1:5173"  # Add this too
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
+
+# Add this explicit OPTIONS handler for preflight requests
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    return JSONResponse(status_code=200)
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "cors": "enabled"}
 
 # =========================
 #      DATABASE SETUP
