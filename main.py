@@ -200,6 +200,7 @@
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse  # Add this import
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import Message, Project
@@ -208,52 +209,33 @@ from config import SMTP_EMAIL, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT
 from auth import authenticate_admin
 import smtplib
 from email.mime.text import MIMEText
+import os  # Make sure this is imported
 
 app = FastAPI()
 
-# # =========================
-# #    IMPROVED CORS SETTINGS
-# # =========================
-# origins = [
-#     "http://localhost:5173",
-#     "http://localhost:5174", 
-#     "http://localhost:3000",
-#     "https://opnex-portfolio.up.railway.app",
-#     "https://your-frontend-domain.com"  # Add your actual frontend domain here
-# ]
-
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-#     allow_headers=["*"],
-# )
-
-
 # =========================
-#    IMPROVED CORS SETTINGS
+#    SIMPLIFIED CORS SETTINGS
 # =========================
 origins = [
     "http://localhost:5173",
     "http://localhost:5174", 
     "http://localhost:3000",
-    "https://opnex-portfolio.up.railway.app",
-    "http://127.0.0.1:5173"  # Add this too
+    "http://127.0.0.1:5173",
+    "https://opnex-portfolio.up.railway.app"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Add this explicit OPTIONS handler for preflight requests
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(rest_of_path: str):
-    return JSONResponse(status_code=200)
+# Remove this problematic OPTIONS handler - FastAPI CORS middleware handles it automatically
+# @app.options("/{rest_of_path:path}")
+# async def preflight_handler(rest_of_path: str):
+#     return JSONResponse(status_code=200)
 
 @app.get("/health")
 async def health_check():
@@ -400,3 +382,9 @@ def delete_message(
     db.delete(db_message)
     db.commit()
     return {"message": "Message deleted"}
+
+# Add startup event at the end to avoid import issues
+@app.on_event("startup")
+async def startup_event():
+    port = os.getenv("PORT", "8000")
+    print(f"🚀 Server starting on port {port}")
